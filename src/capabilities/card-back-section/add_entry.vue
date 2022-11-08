@@ -4,7 +4,7 @@
   <label>Time started:</label>
   <date-picker v-model="startingPoint" :config="flatpickrConfig" />
   <label>Time spent:</label>
-  <input v-model="loggedTime" type="e.g. 1w 2d 4h 5m, -6h, 4.5h" autofocus />
+  <input v-model="loggedTime" placeholder="e.g. 4h 5m, 6h, 4.5h" :class="{ 'is-error': parseError}" autofocus />
   <label>Status:</label>
   <div>You've worked on this card for <b>{{totalLog}}</b>.</div>
   <div v-if="ownEstimate"> Your estimate for this task is <b>{{ownEstimateDisplay}}</b>.</div>
@@ -42,6 +42,7 @@ const loggedItems = ref<Range[]|null>(null);
 const totalEstimate = ref<number>(0);
 const entryComment = ref<string>("")
 const ownEstimate = ref<number>(0);
+const parseError = computed(() => loggedMinutes.value === 0)
 const totalEstimateDisplay = computed(() => {
   return formatTime(totalEstimate.value);
 });
@@ -52,7 +53,14 @@ const ownEstimateDisplay = computed(() => {
 const startingPoint = ref<import("flatpickr/dist/types/options").DateOption>(new Date());
 const loggedTime = ref<string>('');
 const startTime = computed(() => Math.floor(new Date(startingPoint.value).getTime() / 1000));
-const loggedMinutes = computed(() => timeToMinutes(loggedTime.value, 5, 8));
+const loggedMinutes = computed(() => {
+  try {
+    return timeToMinutes(loggedTime.value, 5, 8)
+  }
+  catch (e) {
+    return 0
+  }
+});
 const totalLog = computed(() => 
   minutesToTime(
     loggedItems.value ? 

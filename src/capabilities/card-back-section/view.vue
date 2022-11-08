@@ -31,6 +31,8 @@
   </UIRow>
 
   <p v-else>No options available.</p>
+    <LogDay :ranges="range" :dateString="date" :boardMembers="members" v-if="trackingLogByDay" v-for="[date, range]  in trackingLogByDayIterator(trackingLogByDay)"></LogDay>
+
 </template>
 
 <script setup lang="ts">
@@ -45,10 +47,12 @@ import {
   resizeTrelloFrame
 } from '../../components/trello';
 import { Card } from '../../components/card';
-import { formatTime } from '../../utils/formatting';
+import { formatDate, formatTime } from '../../utils/formatting';
 import { hasEstimateFeature } from '../../components/settings';
 import { Trello } from '../../types/trello';
 import { isVisible } from '../../utils/visibility';
+import { Range } from '../../components/range';
+import LogDay from './log_day.vue';
 
 const isTracking = ref(false);
 const trackedTime = ref(0);
@@ -57,6 +61,22 @@ const ownEstimate = ref(0);
 const hasEstimates = ref(false);
 const canWrite = ref(false);
 const visible = ref(false);
+const trackingLog = ref<Range[] | null>(null)
+const trackingLogByDay = computed(() => 
+    trackingLog.value ? trackingLog.value.reduce((organized: { [index: string]: Range[] }, item) => {
+      const category = formatDate(new Date(item.start * 1000))
+      if (!organized[category]) organized[category] = [];
+      organized[category].push(item as Range);
+      return organized;
+    }, {}) : null
+);
+// used for descending sorting for the dates
+const trackingLogByDayIterator = (logByDay: { [index: string]: Range[]}) => ({
+  *[Symbol.iterator]() {
+    yield* Object.entries(logByDay).sort((a, b) => b[0] < a[0] ? -1 : 1);
+  }
+})
+const members = ref<Trello.PowerUp.Member[]>([]);
 let cardId: string | null = null;
 
 const timeSpentDisplay = computed(() => {
@@ -83,12 +103,17 @@ const trelloTick = async () => {
   const memberId = await getMemberId();
   const card = getCardModel();
 
+  members.value = (await getTrelloCard().board('members')).members
+
   isTracking.value = await card.isRunning();
   trackedTime.value = await card.getTimeSpent();
 
   const estimates = await card.getEstimates();
   totalEstimate.value = estimates.totalEstimate;
 
+  const cardRanges = await card.getRanges()
+  trackingLog.value = cardRanges.items
+  console.log(trackingLog.value)
   const ownEstimateItem = estimates.getByMemberId(memberId);
 
   if (ownEstimateItem) {
@@ -112,6 +137,15 @@ const startTracking = async () => {
   await cardModel.startTracking(card.idList);
 };
 
+const addEntry = async () => {
+  const trelloInstance = getTrelloCard();
+  trelloInstance.modal({
+    title: "Add log entry manually",
+    url: './index.html?page=add-entry',
+    height: 500,
+  })
+}
+
 const stopTracking = async () => {
   const cardModel = getCardModel();
   await cardModel.stopTracking(getTrelloCard());
@@ -130,7 +164,8 @@ const changeEstimate = async (e: MouseEvent) => {
 
 const viewEstimates = async (e: MouseEvent) => {
   const trelloInstance = getTrelloCard();
-
+  const board = await trelloInstance.board('members');
+  const members = board.members
   trelloInstance.popup({
     mouseEvent: e,
     title: 'Estimates',
@@ -138,7 +173,6 @@ const viewEstimates = async (e: MouseEvent) => {
       const cardModel = getCardModel();
       const items: Trello.PowerUp.PopupOptionsItem[] = [];
       const estimates = await cardModel.getEstimates();
-      const board = await t.board('members');
 
       const membersFound = board.members.map((member) => member.id);
 
