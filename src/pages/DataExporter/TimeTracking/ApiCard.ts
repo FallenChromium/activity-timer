@@ -5,7 +5,7 @@ import { Range } from '../../../components/range';
 import { Ranges } from '../../../components/ranges';
 import { Trello } from '../../../types/trello';
 import {
-  formatDate,
+  formatDateTime,
   formatMemberName,
   formatTime
 } from '../../../utils/formatting';
@@ -172,10 +172,10 @@ export class ApiCard {
         'list.id': this._data.idList,
         'list.name': this._listById[this._data.idList]?.name ?? 'N/A',
         start_datetime: furthestBack
-          ? formatDate(new Date(furthestBack * 1000))
+          ? formatDateTime(new Date(furthestBack * 1000))
           : 'N/A',
         end_datetime: furthestAhead
-          ? formatDate(new Date(furthestAhead * 1000))
+          ? formatDateTime(new Date(furthestAhead * 1000))
           : 'N/A',
         'member.id': members.join(', '),
         'member.name': members
