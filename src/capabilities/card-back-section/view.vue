@@ -2,10 +2,10 @@
   <UIRow v-if="canWrite && visible">
     <div>
       <UIButton v-if="!isTracking" @click="startTracking">Start timer</UIButton>
-      <UIButton v-else @click="stopTracking" :danger="true"
-        >Stop timer</UIButton
-      >
-
+      <UIButton v-else @click="stopTracking" :danger="true">
+        Stop timer
+      </UIButton>
+      <UIButton @click="addEntry">Add entry</UIButton>
       <UIInfo icon="clock">{{ timeSpentDisplay }}</UIInfo>
     </div>
 

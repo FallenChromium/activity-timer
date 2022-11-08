@@ -39,7 +39,9 @@ export class Card {
           rangeData[1],
 
           // End
-          rangeData[2]
+          rangeData[2],
+
+          rangeData[3]
         );
       })
     );
@@ -125,7 +127,8 @@ export class Card {
           new Range(
             timer.memberId,
             timer.start,
-            Math.floor(new Date().getTime() / 1000)
+            Math.floor(new Date().getTime() / 1000),
+            "Timer session"
           )
         );
 
@@ -178,7 +181,8 @@ export class Card {
         new Range(
           timer.memberId,
           timer.start,
-          Math.floor(new Date().getTime() / 1000)
+          Math.floor(new Date().getTime() / 1000),
+          "Timer session"
         )
       );
 

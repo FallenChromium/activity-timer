@@ -11,7 +11,7 @@ import {
 } from '../../../utils/formatting';
 
 interface PluginRawData {
-  'act-timer-ranges': [string, number, number][];
+  'act-timer-ranges': [string, number, number, string][];
   'act-timer-estimates': [string, number][];
 }
 
@@ -89,7 +89,10 @@ export class ApiCard {
               rangeData[1],
 
               // End
-              rangeData[2]
+              rangeData[2],
+              
+              // Comment
+              rangeData[3]
             );
           })
         );
