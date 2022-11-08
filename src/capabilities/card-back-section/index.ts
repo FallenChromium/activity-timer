@@ -12,7 +12,7 @@ export async function getCardBackSection(
       url: t.signUrl('./index.html', {
         page: 'card-back-section'
       }),
-      height: 40
+      height: 240
     }
   };
 }
