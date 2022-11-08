@@ -14,18 +14,19 @@
 
   <CapabilityCardBackSection v-if="page === 'card-back-section'" />
   <ChangeEstimate v-else-if="page === 'change-estimate'" />
+  <AddEntry v-else-if="page === 'add-entry'" />
   <MemberSettings v-else-if="page === 'member-settings'" />
   <NotificationSettings v-else-if="page === 'notification-settings'" />
   <Settings v-else-if="page === 'settings'" />
   <DataExporterTime v-else-if="page === 'time'" />
   <DataExporterEstimates v-else-if="page === 'estimates'" />
-  <DatetimePicker v-else-if="page === 'datetime'" />
 </template>
 
 <script setup lang="ts">
 import { getTrelloInstance, resizeTrelloFrame } from './components/trello';
 import CapabilityCardBackSection from './capabilities/card-back-section/view.vue';
 import ChangeEstimate from './capabilities/card-back-section/change_estimate.vue';
+import AddEntry from './capabilities/card-back-section/add_entry.vue';
 import MemberSettings from './pages/MemberSettings.vue';
 import NotificationSettings from './pages/NotificationSettings.vue';
 import Settings from './pages/Settings.vue';

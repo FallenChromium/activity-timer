@@ -11,6 +11,7 @@
         severity="danger"
         @click="stopTracking"
       />
+      <Button label="Add entry" @click="addEntry" />
 
       <Button
         :label="timeSpentDisplay"
