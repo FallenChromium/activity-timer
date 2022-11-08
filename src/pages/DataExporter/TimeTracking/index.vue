@@ -148,7 +148,7 @@ import UIButton from '../../../components/UIButton.vue';
 import UIDropdown, { Option } from '../../../components/UIDropdown.vue';
 import { Trello } from '../../../types/trello';
 import {
-  formatDate,
+  formatDateTime,
   formatMemberName,
   formatTime
 } from '../../../utils/formatting';
@@ -456,10 +456,10 @@ const rowDataList = computed<ApiCardRowData[]>(() => {
                 .map((memberId) => formatMemberName(memberById[memberId]))
                 .join(', '),
               start_datetime: furthestBack
-                ? formatDate(new Date(furthestBack * 1000))
+                ? formatDateTime(new Date(furthestBack * 1000))
                 : 'N/A',
               end_datetime: furthestAhead
-                ? formatDate(new Date(furthestAhead * 1000))
+                ? formatDateTime(new Date(furthestAhead * 1000))
                 : 'N/A',
               time_seconds: timeSpent,
               time_formatted: formatTime(timeSpent, true)
@@ -529,10 +529,10 @@ const rowDataList = computed<ApiCardRowData[]>(() => {
                   'member.id': memberId,
                   'member.name': formatMemberName(memberById[memberId]),
                   start_datetime: furthestBack
-                    ? formatDate(new Date(furthestBack * 1000))
+                    ? formatDateTime(new Date(furthestBack * 1000))
                     : 'N/A',
                   end_datetime: furthestAhead
-                    ? formatDate(new Date(furthestAhead * 1000))
+                    ? formatDateTime(new Date(furthestAhead * 1000))
                     : 'N/A',
                   time_seconds: timeSpent,
                   time_formatted: formatTime(timeSpent, true)
@@ -551,10 +551,10 @@ const rowDataList = computed<ApiCardRowData[]>(() => {
                 'member.id': range.memberId,
                 'member.name': formatMemberName(memberById[range.memberId]),
                 start_datetime: furthestBack
-                  ? formatDate(new Date(range.start * 1000))
+                  ? formatDateTime(new Date(range.start * 1000))
                   : 'N/A',
                 end_datetime: furthestAhead
-                  ? formatDate(new Date(range.end * 1000))
+                  ? formatDateTime(new Date(range.end * 1000))
                   : 'N/A',
                 time_seconds: range.diff,
                 time_formatted: formatTime(range.diff, true)

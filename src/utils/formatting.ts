@@ -21,7 +21,7 @@ export function formatTime(secondsToFormat: number, allowSeconds?: boolean) {
   return timeFormat.length > 0 ? timeFormat.join(' ') : '0m';
 }
 
-export function formatDate(date: Date, returnOnlyTimeString?: boolean) {
+export function formatDateTime(date: Date, returnOnlyTimeString?: boolean) {
   const dateStr = [
     date.getFullYear(),
     (date.getMonth() + 1 < 10 ? '0' : '') + (date.getMonth() + 1),
@@ -37,6 +37,15 @@ export function formatDate(date: Date, returnOnlyTimeString?: boolean) {
     (returnOnlyTimeString ? '' : dateStr.join('-') + ' ') + timeStr.join(':')
   );
 }
+
+export function formatDate(date: Date){
+  const dateStr = [
+    date.getFullYear(),
+    (date.getMonth() + 1 < 10 ? '0' : '') + (date.getMonth() + 1),
+    (date.getDate() < 10 ? '0' : '') + date.getDate()
+  ];
+  return dateStr.join('-')
+} 
 
 export function formatMemberName(member: Trello.PowerUp.Member) {
   if (!member) {
