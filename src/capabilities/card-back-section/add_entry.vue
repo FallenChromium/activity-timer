@@ -62,9 +62,9 @@ const loggedMinutes = computed(() => {
   }
 });
 const totalLog = computed(() => 
-  minutesToTime(
+  formatTime(
     loggedItems.value ? 
-      Math.floor(loggedItems.value.reduce((a, b) => a + b.diff, 0) / 60 + loggedMinutes.value) : 
+      Math.floor(loggedItems.value.reduce((a, b) => a + b.diff, 0) + loggedMinutes.value * 60) : 
       loggedMinutes.value
   )
 )
