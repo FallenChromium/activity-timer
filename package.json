@@ -28,7 +28,6 @@
     "vue": "^3.2.16",
     "vue-ctk-date-time-picker": "^3.0.0-alpha.0",
     "vue-flatpickr-component": "^11.0.1"
-    "vue-flatpickr-component": "^11.0.1"
   },
   "devDependencies": {
     "@types/node": "^18.11.8",
