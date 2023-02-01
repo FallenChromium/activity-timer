@@ -30,8 +30,7 @@
     "vite": "^2.6.4",
     "vue": "^3.2.16",
     "vue-ctk-date-time-picker": "^3.0.0-alpha.0",
-    "vue-flatpickr-component": "^11.0.1",
-    "vue-jest": "^5.0.0-alpha.10"
+    "vue-flatpickr-component": "^11.0.1"
   },
   "devDependencies": {
     "@types/vue-router": "^2.0.0",
