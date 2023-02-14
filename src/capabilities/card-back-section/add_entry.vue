@@ -11,7 +11,7 @@
   <div v-if="totalEstimate && totalEstimate > 0"> Total estimate for this card is <b>{{totalEstimateDisplay}}</b>.</div>
   <label>Comment:</label>
   <textarea class="comments" rows="5" cols="1" wrap="soft" v-model="entryComment" maxlength="120"></textarea>
-  <UIButton @click="save">Save estimate</UIButton>
+  <UIButton @click="save">Save entry</UIButton>
 </div>
 </template>
 
