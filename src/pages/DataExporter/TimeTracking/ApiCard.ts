@@ -63,7 +63,7 @@ export class ApiCard {
     this._boardData = boardData;
     this._data = data;
 
-    const pluginData = data.pluginData.find((pluginData) => {
+    const pluginData = data.pluginData.filter((pluginData) => {
       return (
         pluginData.value &&
         (pluginData.value.includes('act-timer-ranges') ||
@@ -71,15 +71,18 @@ export class ApiCard {
       );
     });
 
-    if (pluginData) {
-      const parsedPluginData = JSON.parse(pluginData.value) as PluginRawData;
+    this._ranges = new Ranges(this._data.id);
+    this._estimates = new Estimates(this._data.id, []);
+
+    if (pluginData.length > 0) {
+      for (const data of pluginData) {
+        const parsedPluginData = JSON.parse(data.value) as PluginRawData;
 
       if (
         parsedPluginData['act-timer-ranges'] &&
         parsedPluginData['act-timer-ranges'].length > 0
       ) {
-        this._ranges = new Ranges(
-          this._data.id,
+          this._ranges = new Ranges(this._data.id, this._ranges.items.concat(
           parsedPluginData['act-timer-ranges'].map((rangeData) => {
             return new Range(
               // Member id
@@ -95,15 +98,13 @@ export class ApiCard {
               rangeData[3]
             );
           })
-        );
-      } else {
-        this._ranges = new Ranges(this._data.id);
+          ));
       }
 
       if (parsedPluginData['act-timer-estimates']) {
         this._estimates = new Estimates(
           this._data.id,
-          parsedPluginData['act-timer-estimates'].map((estimate) => {
+            this._estimates.items.concat(parsedPluginData['act-timer-estimates'].map((estimate) => {
             return new Estimate(
               // Member id
               estimate[0],
@@ -112,13 +113,9 @@ export class ApiCard {
               estimate[1]
             );
           })
-        );
-      } else {
-        this._estimates = new Estimates(this._data.id, []);
+            ));
       }
-    } else {
-      this._ranges = new Ranges(this._data.id);
-      this._estimates = new Estimates(this._data.id, []);
+      }
     }
 
     this._memberById = memberById;
