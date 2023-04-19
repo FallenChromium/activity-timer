@@ -182,7 +182,16 @@ const members = ref<string[]>([]);
 const boardOptions = ref<Option[]>();
 const boards = ref<string[]>([]);
 const labels = ref<string[]>([]);
-const columns = ref<string[]>([]);
+  const defaultColumns: (keyof ApiCardRowData)[] = [
+  'board.name',
+  'card.title',
+  'card.labels',
+  'member.name',
+  'start_datetime',
+  'end_datetime',
+  'time_formatted'
+];
+const columns = ref<string[]>(<string[]>defaultColumns);
 const dateFrom = ref('');
 const dateTo = ref('');
 const listOptions = ref<Option[]>([]);
@@ -209,15 +218,6 @@ const loading = ref(true);
 const ready = ref(false);
 const hasSubscription = ref(false);
 const uniqueLabels = ref<Trello.PowerUp.Label[]>([]);
-const defaultColumns: (keyof ApiCardRowData)[] = [
-  'board.name',
-  'card.title',
-  'card.labels',
-  'member.name',
-  'start_datetime',
-  'end_datetime',
-  'time_formatted'
-];
 
 const powerupId = getPowerupId();
 
@@ -245,9 +245,6 @@ if (currentSettings?.columns) {
   columns.value = currentSettings.columns;
 }
 
-const boardNameById: {
-  [key: string]: string;
-} = {};
 const columnStyle: { [key: keyof ApiCardRowData]: CSSProperties } = {
   'card.description': {
     maxWidth: '200px',
@@ -283,10 +280,6 @@ const columnOptions = ref<Option[]>([
   {
     text: 'Card id',
     value: 'card.id'
-  },
-  {
-    text: 'Board name',
-    value: 'board.name'
   },
   {
     text: 'Board id',
@@ -699,23 +692,22 @@ async function getData() {
   const currentMember = await getTrelloInstance().member('id');
 
   try {
-    const boardOptionsList = await fetch(
+    const boardList: Trello.PowerUp.Board[] = await fetch(
       `https://api.trello.com/1/members/${
         currentMember.id
       }/boards?fields=id,name&key=${getAppKey()}&token=${token}&r=${new Date().getTime()}`
-    ).then<{ id: string; name: string }[]>((res) => res.json());
+    ).then<Trello.PowerUp.Board[]>((res) => res.json())
 
-    boardOptions.value = boardOptionsList.map<Option>((board) => {
-      boardNameById[board.id] = board.name;
+    boardOptions.value = boardList.map<Option>((board) => {
       return {
         value: board.id,
         text: board.name
       };
     });
 
-    const cardsRequests = boards.value.map((board) => {
+    const cardsRequests = boardList.map((board) => {
       // double encode quotes to %252C because otherwise there's a clash with batch
-      return `/boards/${board}/cards/all?pluginData=true&fields=id%252CidList%252CidBoard%252Cname%252Cdesc%252Clabels%252CpluginData%252Cclosed`;
+      return `/boards/${board.id}/cards/all?pluginData=true&fields=id%252CidList%252CidBoard%252Cname%252Cdesc%252Clabels%252CpluginData%252Cclosed`;
     });
     // use batch request to reduce latency
     // funky way to compose urls field to avoid comma conflict with internal request urls
@@ -745,17 +737,11 @@ async function getData() {
             }
           })
           .flat();
-      });
-
-    const boardData = await fetch(
-      `https://api.trello.com/1/boards/${
-        board.id
-      }?fields=name&key=${getAppKey()}&token=${token}&r=${new Date().getTime()}`
-    ).then<Trello.PowerUp.Board>((res) => res.json());
-
-    cards = data.map<ApiCard>((card) => {
-      return new ApiCard(boardData, card, listById, memberById, members);
-    });
+        });
+  
+  cards = data.map<ApiCard>((card) => {
+    return new ApiCard(boardList.find((el) => el.id === card.idBoard)!, card, listById, memberById , members);
+  });
 
     lastDataFetch.value = Date.now();
 
@@ -764,8 +750,8 @@ async function getData() {
     if (err instanceof Error) {
       getTrelloCard().alert({ message: err.message, duration: 5 });
     }
-
-    await getTrelloCard().getRestApi().clearToken();
+    // TODO: there's a better way to handle token errors, in case of EVERY exception it gets cleared which is very hard to understand for an end-user.
+    //await getTrelloCard().getRestApi().clearToken();
 
     await trelloTick();
   }

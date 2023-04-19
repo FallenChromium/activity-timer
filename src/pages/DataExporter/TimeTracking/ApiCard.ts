@@ -34,8 +34,6 @@ export interface ApiCardRowData {
   'board.id': string;
   'card.id': string;
   'card.title': string;
-  'board.id': string;
-  'board.name': string;
   'card.description': string;
   'card.labels': string;
   'list.id': string;
@@ -65,14 +63,12 @@ export class ApiCard {
   private _rowData: ComputedRef<ApiCardRowData>;
   private _memberById: MemberById;
   private _listById: ListById;
-  private _boardNameById: BoardNameById;
 
   constructor(
     boardData: Trello.PowerUp.Board,
     data: Trello.PowerUp.Card,
     listById: ListById,
     memberById: MemberById,
-    boardById: BoardNameById,
     selectedMembers: Ref<string[]>
   ) {
     this._boardData = boardData;
@@ -135,7 +131,6 @@ export class ApiCard {
 
     this._memberById = memberById;
     this._listById = listById;
-    this._boardNameById = boardById;
     this._rowData = computed<ApiCardRowData>(() => {
       const ranges =
         selectedMembers.value.length > 0
@@ -183,8 +178,6 @@ export class ApiCard {
         'card.labels': this._data.labels.map((label) => label.name).join(', '),
         'list.id': this._data.idList,
         'list.name': this._listById[this._data.idList]?.name ?? 'N/A',
-        'board.id': this._data.idBoard,
-        'board.name': this._boardNameById[this._data.idBoard] ?? 'N/A',
         start_datetime: furthestBack
           ? formatDateTime(new Date(furthestBack * 1000))
           : 'N/A',
