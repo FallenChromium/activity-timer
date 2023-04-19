@@ -151,12 +151,8 @@
       <p>
         Filtering in data export is restricted to Pro users only. Free plan can
         only do full exports.
-        <a
-          :href="`https://www.optro.cloud/app/${powerupId}`"
-          target="_blank"
-          rel="noreferrer"
-          >Read more about the Pro plan here.</a
-        >
+        <a :href="`https://www.optro.cloud/app/${powerupId}`" target="_blank" rel="noreferrer">Read more about the Pro
+          plan here.</a>
       </p>
     </div>
 
@@ -241,7 +237,7 @@ const members = ref<string[]>([]);
 const boardOptions = ref<Option[]>();
 const boards = ref<string[]>([]);
 const labels = ref<string[]>([]);
-  const defaultColumns: (keyof ApiCardRowData)[] = [
+const defaultColumns: (keyof ApiCardRowData)[] = [
   'board.name',
   'card.title',
   'card.labels',
@@ -382,46 +378,6 @@ const columnOptions = ref<Option[]>([
 let cards: ApiCard[] = [];
 const lastDataFetch = ref(0);
 
-// function groupBy<K, V>(array: V[], grouper: (item: V) => K) {
-//   return array.reduce((map, item) => {
-//     var key = grouper(item)
-//     if (!map.has(key)) {
-//       map.set(key, [item])
-//     } else {
-//       map.get(key)?.push(item)
-//     }
-//     return map
-//   }, new Map<K, V[]>())
-// }
-
-// function transformMap<K, V, R>(
-//   source: Map<K, V>,
-//   transformer: (value: V, key: K) => R
-// ) {
-//   return new Map(
-//     Array.from(source, v => [v[0], transformer(v[1], v[0])])
-//   )
-// }
-
-// let groupedResults = transformMap(
-//   groupBy(results, r => r.name),
-//   values =>
-//     transformMap(
-//       groupBy(values, r => r.marker.threads),
-//       values =>
-//         values
-//           .sort(
-//             (a, b) =>
-//               b.marker.start - a.marker.end
-//           )
-//           .map(v => ({
-//             tests: v.tests,
-//             errors: v.errors,
-//             latency: v.latency,
-//             start: v.marker.start,
-//           }))
-//     )
-// )
 
 const tableHead = computed<Option[]>(() => {
   const selectedColumns =
@@ -666,9 +622,10 @@ const rowDataList = computed<ApiCardRowData[]>(() => {
             }
           });
         }
+  
     }
   });
-return rowData
+  return rowData
 });
 
 const totalTimeSeconds = computed(() => {
@@ -728,8 +685,7 @@ async function getData() {
 
   try {
     const boardList: Trello.PowerUp.Board[] = await fetch(
-      `https://api.trello.com/1/members/${
-        currentMember.id
+      `https://api.trello.com/1/members/${currentMember.id
       }/boards?fields=id,name&key=${getAppKey()}&token=${token}&r=${new Date().getTime()}`
     ).then<Trello.PowerUp.Board[]>((res) => res.json())
 
@@ -740,9 +696,64 @@ async function getData() {
       };
     });
 
-    const cardsRequests = boardList.map((board) => {
+    const membersFetchUri =
+      new URL(
+        `https://api.trello.com/1/batch?key=${getAppKey()}&token=${token}&r=${new Date().getTime()}&urls=`
+      ) + boardList.map((board) => {
+        return `/boards/${board.id}/members`;
+      }).join('&urls=');
+
+    const membersList = await fetch(membersFetchUri)
+      .then<{ 200: Trello.PowerUp.Member[] }[]>((res) => {
+        if (!res.ok) {
+          throw new Error(
+            'Request for cards failed with status: ' + res.statusText
+          );
+        }
+        return res.json();
+      })
+      .then((array) => {
+        return array
+          .map((elem) => {
+            if ('200' in elem) {
+              return elem['200'];
+            } else {
+              throw new Error(
+                'Fetching members data from one or more boards failed.'
+              );
+            }
+          })
+          .flat();
+      });
+
+    // use Set to deduplicate data from board members arrays
+    memberOptions.value = membersList
+      .sort((a, b) => {
+        const nameA = (a.fullName ?? '').toUpperCase();
+        const nameB = (b.fullName ?? '').toUpperCase();
+
+        if (nameA < nameB) {
+          return -1;
+        }
+        if (nameA > nameB) {
+          return 1;
+        }
+
+        return 0;
+      })
+      .map<Option>((member) => {
+        memberById[member.id] = member
+        return {
+          value: member.id,
+          text: formatMemberName(member)
+        };
+      }).filter((option, index, array) => {
+        return index === array.findIndex(member => member.value === option.value)
+      });
+
+    const cardsRequests = boards.value.map((board) => {
       // double encode quotes to %252C because otherwise there's a clash with batch
-      return `/boards/${board.id}/cards/all?pluginData=true&fields=id%252CidList%252CidBoard%252Cname%252Cdesc%252Clabels%252CpluginData%252Cclosed`;
+      return `/boards/${board}/cards/all?pluginData=true&fields=id%252CidList%252CidBoard%252Cname%252Cdesc%252Clabels%252CpluginData%252Cclosed`;
     });
     // use batch request to reduce latency
     // funky way to compose urls field to avoid comma conflict with internal request urls
@@ -772,11 +783,11 @@ async function getData() {
             }
           })
           .flat();
-        });
-  
-  cards = data.map<ApiCard>((card) => {
-    return new ApiCard(boardList.find((el) => el.id === card.idBoard)!, card, listById, memberById , members);
-  });
+      });
+
+    cards = data.map<ApiCard>((card) => {
+      return new ApiCard(boardList.find((el) => el.id === card.idBoard)!, card, listById, memberById, members);
+    });
 
     lastDataFetch.value = Date.now();
 
@@ -800,7 +811,6 @@ async function getData() {
 }
 
 async function initialize() {
-  const board = await getTrelloInstance().board('members');
   const currentBoard = await getTrelloInstance().board('id');
   boards.value = [currentBoard.id];
   // Get the initial subscription status
@@ -810,10 +820,6 @@ async function initialize() {
   setInterval(async () => {
     hasSubscription.value = await getSubscriptionStatus();
   }, 60 * 1000 * 5);
-
-  board.members.forEach((member) => {
-    memberById[member.id] = member;
-  });
 
   listOptions.value = (
     await getTrelloInstance().lists('id', 'name')
@@ -825,27 +831,6 @@ async function initialize() {
       value: list.id
     };
   });
-
-  memberOptions.value = board.members
-    .sort((a, b) => {
-      const nameA = (a.fullName ?? '').toUpperCase();
-      const nameB = (b.fullName ?? '').toUpperCase();
-
-      if (nameA < nameB) {
-        return -1;
-      }
-      if (nameA > nameB) {
-        return 1;
-      }
-
-      return 0;
-    })
-    .map<Option>((member) => {
-      return {
-        value: member.id,
-        text: formatMemberName(member)
-      };
-    });
 
   if (isAuthorized.value) {
     await getData();
