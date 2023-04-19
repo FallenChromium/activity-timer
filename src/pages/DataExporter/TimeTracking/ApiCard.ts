@@ -23,6 +23,10 @@ interface ListById {
   [key: string]: Trello.PowerUp.List;
 }
 
+interface BoardNameById {
+  [key: string]: string
+}
+
 export interface ApiCardRowData {
   [key: string]: string | string[] | number;
   id: number | string;
@@ -30,6 +34,8 @@ export interface ApiCardRowData {
   'board.id': string;
   'card.id': string;
   'card.title': string;
+  'board.id': string;
+  'board.name': string;
   'card.description': string;
   'card.labels': string;
   'list.id': string;
@@ -44,6 +50,13 @@ export interface ApiCardRowData {
   estimate_formatted: string;
 }
 
+// class ApiCardRanges extends Ranges {
+//   private _boardId: string
+//   constructor(cardId: string, items?: Range[]) {
+//     super(cardId, items)
+//   }
+// }
+
 export class ApiCard {
   private _boardData: Trello.PowerUp.Board;
   private _data: Trello.PowerUp.Card;
@@ -52,12 +65,14 @@ export class ApiCard {
   private _rowData: ComputedRef<ApiCardRowData>;
   private _memberById: MemberById;
   private _listById: ListById;
+  private _boardNameById: BoardNameById;
 
   constructor(
     boardData: Trello.PowerUp.Board,
     data: Trello.PowerUp.Card,
     listById: ListById,
     memberById: MemberById,
+    boardById: BoardNameById,
     selectedMembers: Ref<string[]>
   ) {
     this._boardData = boardData;
@@ -78,57 +93,58 @@ export class ApiCard {
       for (const data of pluginData) {
         const parsedPluginData = JSON.parse(data.value) as PluginRawData;
 
-      if (
-        parsedPluginData['act-timer-ranges'] &&
-        parsedPluginData['act-timer-ranges'].length > 0
-      ) {
+        if (
+          parsedPluginData['act-timer-ranges'] &&
+          parsedPluginData['act-timer-ranges'].length > 0
+        ) {
           this._ranges = new Ranges(this._data.id, this._ranges.items.concat(
-          parsedPluginData['act-timer-ranges'].map((rangeData) => {
-            return new Range(
-              // Member id
-              rangeData[0],
+            parsedPluginData['act-timer-ranges'].map((rangeData) => {
+              return new Range(
+                // Member id
+                rangeData[0],
 
-              // Start
-              rangeData[1],
+                // Start
+                rangeData[1],
 
-              // End
-              rangeData[2],
-              
-              // Comment
-              rangeData[3]
-            );
-          })
+                // End
+                rangeData[2],
+
+                // Comment
+                rangeData[3]
+              );
+            })
           ));
-      }
+        }
 
-      if (parsedPluginData['act-timer-estimates']) {
-        this._estimates = new Estimates(
-          this._data.id,
+        if (parsedPluginData['act-timer-estimates']) {
+          this._estimates = new Estimates(
+            this._data.id,
             this._estimates.items.concat(parsedPluginData['act-timer-estimates'].map((estimate) => {
-            return new Estimate(
-              // Member id
-              estimate[0],
+              return new Estimate(
+                // Member id
+                estimate[0],
 
-              // Time in seconds
-              estimate[1]
-            );
-          })
+                // Time in seconds
+                estimate[1]
+              );
+            })
             ));
-      }
+        }
       }
     }
 
     this._memberById = memberById;
     this._listById = listById;
+    this._boardNameById = boardById;
     this._rowData = computed<ApiCardRowData>(() => {
       const ranges =
         selectedMembers.value.length > 0
           ? new Ranges(
-              this._data.id,
-              this._ranges.items.filter((item) =>
-                selectedMembers.value.includes(item.memberId)
-              )
+            this._data.id,
+            this._ranges.items.filter((item) =>
+              selectedMembers.value.includes(item.memberId)
             )
+          )
           : this._ranges;
 
       const timeSpent = ranges.timeSpent;
@@ -157,7 +173,6 @@ export class ApiCard {
         },
         null
       );
-
       return {
         id: this._data.id,
         'board.name': this._boardData.name,
@@ -168,6 +183,8 @@ export class ApiCard {
         'card.labels': this._data.labels.map((label) => label.name).join(', '),
         'list.id': this._data.idList,
         'list.name': this._listById[this._data.idList]?.name ?? 'N/A',
+        'board.id': this._data.idBoard,
+        'board.name': this._boardNameById[this._data.idBoard] ?? 'N/A',
         start_datetime: furthestBack
           ? formatDateTime(new Date(furthestBack * 1000))
           : 'N/A',

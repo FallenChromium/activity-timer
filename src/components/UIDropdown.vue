@@ -1,45 +1,21 @@
 <template>
   <UIFormElement>
-    <label @click="showOptions = !showOptions"
-      >{{ label }}<i v-if="help">({{ help }})</i></label
-    >
+    <label @click="showOptions = !showOptions">{{ label }}<i v-if="help">({{ help }})</i></label>
 
-    <div
-      class="dropdown"
-      :class="{ 'dropdown--active': showOptions }"
-      ref="container"
-    >
-      <div
-        class="dropdown__selected"
-        @click="showOptions = !showOptions"
-        :title="selected"
-      >
+    <div class="dropdown" :class="{ 'dropdown--active': showOptions }" ref="container">
+      <div class="dropdown__selected" @click="showOptions = !showOptions" :title="selected">
         {{ selected || placeholder }}
-        <div
-          class="dropdown__selected-clear"
-          @click.stop="clear()"
-          v-if="hasValue"
-        >
+        <div class="dropdown__selected-clear" @click.stop="clear()" v-if="hasValue">
           <UIIcon icon="clear" />
         </div>
       </div>
 
-      <div
-        class="dropdown__options"
-        :class="{ 'dropdown__options--top': optionsFromTop }"
-        v-if="showOptions"
-        ref="optionsContainer"
-      >
-        <div
-          class="dropdown__option"
-          v-for="option in options"
-          :key="option.value"
-          :class="{
-            'dropdown__option--selected': value.includes(option.value)
-          }"
-          :title="option.text"
-          @click="toggleOption(option)"
-        >
+      <div class="dropdown__options" :class="{ 'dropdown__options--top': optionsFromTop }" v-if="showOptions"
+        ref="optionsContainer">
+        <div class="dropdown__option" v-if="multiple && options!.length > 0" @click="selectAll">All</div>
+        <div class="dropdown__option" v-for="option in options" :key="option.value" :class="{
+          'dropdown__option--selected':  multiple ? selectedBuffer.includes(option.value) : value.includes(option.value)
+        }" :title="option.text" @click="toggleOption(option)">
           {{ option.text }}
         </div>
       </div>
@@ -97,7 +73,7 @@ export default defineComponent({
 
     const showOptions = ref(false);
     const optionsFromTop = ref(false);
-
+    const selectedBuffer = ref<Array<string>>([]);
     const selected = computed(() => {
       if (Array.isArray(props.modelValue)) {
         return props.modelValue
@@ -146,28 +122,30 @@ export default defineComponent({
         : !!props.modelValue;
     });
 
+    const selectAll = () => {
+      selectedBuffer.value = props.options!.map(x => x.value)
+    }
+
     const toggleOption = (option: Option) => {
       if (props.multiple) {
-        const newValue = Array.from(
-          Array.isArray(props.modelValue) ? props.modelValue : []
-        );
 
-        if (newValue.includes(option.value)) {
-          newValue.splice(newValue.indexOf(option.value), 1);
+        if (selectedBuffer.value.includes(option.value)) {
+          selectedBuffer.value.splice(selectedBuffer.value.indexOf(option.value), 1);
         } else {
-          newValue.push(option.value);
+          selectedBuffer.value.push(option.value);
         }
 
-        context.emit('update:modelValue', newValue);
       } else {
         showOptions.value = false;
         context.emit('update:modelValue', option.value);
+        console.log("Updated value at toggle")
       }
     };
 
     const clear = () => {
       showOptions.value = false;
       context.emit('update:modelValue', props.multiple ? [] : '');
+      console.log('Updated value with clear')
     };
 
     const clickAwayDetection = (e: MouseEvent) => {
@@ -209,9 +187,28 @@ export default defineComponent({
     watch(showOptions, () => {
       if (showOptions.value && container.value) {
         const rect = container.value.getBoundingClientRect();
-
         optionsFromTop.value = window.innerHeight < rect.bottom + 75;
+
+        if (props.multiple) {
+          // update buffer with the latest value
+          selectedBuffer.value = value.value
+          console.log('Updated buffer with the current value')
+        }
+        
       }
+      // set value to the buffer value after the dropdown has closed
+      // reduces reactivity but also helps UX, less useless computations being made on intermediate values
+      if (!showOptions.value && props.multiple) {
+        console.log(props.modelValue)
+        console.log(selectedBuffer.value)
+        if (props.modelValue != selectedBuffer.value) {
+          context.emit('update:modelValue', selectedBuffer.value);
+          console.log('Updated value with buffer sync')
+        }
+      }
+    });
+    watch(value.value, () => {
+      console.log('New value:', value.value);
     });
 
     window.addEventListener('click', clickAwayDetection);
@@ -226,7 +223,9 @@ export default defineComponent({
       clear,
       hasValue,
       value,
+      selectedBuffer,
       toggleOption,
+      selectAll,
       container,
       optionsContainer,
       optionsFromTop

@@ -41,15 +41,24 @@
         <UIDropdown
           v-model="members"
           label="Members"
-          placeholder="All"
+          placeholder="No filtering"
           :multiple="true"
           :options="memberOptions"
         />
 
         <UIDropdown
+          v-model="boards"
+          label="Boards"
+          placeholder="None"
+          :multiple="true"
+          :options="boardOptions"
+          @update:modelValue="getData()"
+        />
+
+        <UIDropdown
           v-model="lists"
           label="Lists"
-          placeholder="All"
+          placeholder="No filtering"
           :multiple="true"
           :options="listOptions"
         />
@@ -57,7 +66,7 @@
         <UIDropdown
           v-model="labels"
           label="Labels"
-          placeholder="All"
+          placeholder="No filtering"
           :multiple="true"
           :options="labelOptions"
         />
@@ -76,10 +85,11 @@
       </div>
 
       <UIDropdown
-        v-model="groupBy"
+        v-model="groupEntities"
         label="Group by"
         help="No grouping = each time tracking is on a separate row"
         placeholder="No grouping"
+        :multiple="true"
         :options="groupByOptions"
       />
     </div>
@@ -155,6 +165,7 @@ import {
 import { ApiCard, ApiCardRowData } from './ApiCard';
 import UIDateInput from '../../../components/UIDateInput.vue';
 import { Ranges } from '../../../components/ranges';
+import { Range } from '../../../components/range';
 import { ExportToCsv } from 'export-to-csv';
 import UILoader from '../../../components/UILoader.vue';
 import { getSubscriptionStatus } from '../../../components/optro';
@@ -168,6 +179,8 @@ interface Settings {
 const isAuthorized = ref(false);
 const memberOptions = ref<Option[]>();
 const members = ref<string[]>([]);
+const boardOptions = ref<Option[]>();
+const boards = ref<string[]>([]);
 const labels = ref<string[]>([]);
 const columns = ref<string[]>([]);
 const dateFrom = ref('');
@@ -183,22 +196,26 @@ const groupByOptions = ref<Option[]>([
     value: 'card'
   },
   {
-    text: 'Card & member',
-    value: 'card_and_member'
+    text: 'Member',
+    value: 'member'
+  },
+  {
+    text: 'Board',
+    value: 'board'
   }
 ]);
-const groupBy = ref<'card' | 'card_and_member' | undefined>();
+const groupEntities = ref<string[] | undefined>();
 const loading = ref(true);
 const ready = ref(false);
 const hasSubscription = ref(false);
 const uniqueLabels = ref<Trello.PowerUp.Label[]>([]);
 const defaultColumns: (keyof ApiCardRowData)[] = [
+  'board.name',
   'card.title',
   'card.labels',
   'member.name',
   'start_datetime',
   'end_datetime',
-  'time_seconds',
   'time_formatted'
 ];
 
@@ -228,6 +245,9 @@ if (currentSettings?.columns) {
   columns.value = currentSettings.columns;
 }
 
+const boardNameById: {
+  [key: string]: string;
+} = {};
 const columnStyle: { [key: keyof ApiCardRowData]: CSSProperties } = {
   'card.description': {
     maxWidth: '200px',
@@ -263,6 +283,14 @@ const columnOptions = ref<Option[]>([
   {
     text: 'Card id',
     value: 'card.id'
+  },
+  {
+    text: 'Board name',
+    value: 'board.name'
+  },
+  {
+    text: 'Board id',
+    value: 'board.id'
   },
   {
     text: 'Card title',
@@ -304,6 +332,47 @@ const columnOptions = ref<Option[]>([
 
 let cards: ApiCard[] = [];
 const lastDataFetch = ref(0);
+
+// function groupBy<K, V>(array: V[], grouper: (item: V) => K) {
+//   return array.reduce((map, item) => {
+//     var key = grouper(item)
+//     if (!map.has(key)) {
+//       map.set(key, [item])
+//     } else {
+//       map.get(key)?.push(item)
+//     }
+//     return map
+//   }, new Map<K, V[]>())
+// }
+
+// function transformMap<K, V, R>(
+//   source: Map<K, V>,
+//   transformer: (value: V, key: K) => R
+// ) {
+//   return new Map(
+//     Array.from(source, v => [v[0], transformer(v[1], v[0])])
+//   )
+// }
+
+// let groupedResults = transformMap(
+//   groupBy(results, r => r.name),
+//   values =>
+//     transformMap(
+//       groupBy(values, r => r.marker.threads),
+//       values =>
+//         values
+//           .sort(
+//             (a, b) =>
+//               b.marker.start - a.marker.end
+//           )
+//           .map(v => ({
+//             tests: v.tests,
+//             errors: v.errors,
+//             latency: v.latency,
+//             start: v.marker.start,
+//           }))
+//     )
+// )
 
 const tableHead = computed<Option[]>(() => {
   const selectedColumns =
@@ -444,124 +513,121 @@ const rowDataList = computed<ApiCardRowData[]>(() => {
         return carry;
       }, null);
 
-      switch (groupBy.value) {
-        case 'card':
-          if (timeSpent > 0) {
-            rowCounter++;
-            rowData.push({
-              ...rowDataItem,
-              id: rowCounter,
-              'member.id': membersInrange.join(', '),
-              'member.name': membersInrange
-                .map((memberId) => formatMemberName(memberById[memberId]))
-                .join(', '),
-              start_datetime: furthestBack
-                ? formatDateTime(new Date(furthestBack * 1000))
-                : 'N/A',
-              end_datetime: furthestAhead
-                ? formatDateTime(new Date(furthestAhead * 1000))
-                : 'N/A',
-              time_seconds: timeSpent,
-              time_formatted: formatTime(timeSpent, true)
-            });
-          }
-          break;
+      // if(groupEntities.value?.includes("card")) {
+      //     if (timeSpent > 0) {
+      //       rowCounter++;
+      //       rowData.push({
+      //         ...rowDataItem,
+      //         id: rowCounter,
+      //         'member.id': membersInrange.join(', '),
+      //         'member.name': membersInrange
+      //           .map((memberId) => formatMemberName(memberById[memberId]))
+      //           .join(', '),
+      //         start_datetime: furthestBack
+      //           ? formatDateTime(new Date(furthestBack * 1000))
+      //           : 'N/A',
+      //         end_datetime: furthestAhead
+      //           ? formatDateTime(new Date(furthestAhead * 1000))
+      //           : 'N/A',
+      //         time_seconds: timeSpent,
+      //         time_formatted: formatTime(timeSpent, true)
+      //       });
+      //     }
+      //   }
+      //   if (groupEntities.value?.includes("member")) {
+      //     ranges.items
+      //       .map((range) => range.memberId)
+      //       .filter((value, index, self) => {
+      //         return self.indexOf(value) === index;
+      //       })
+      //       .forEach((memberId) => {
+      //         let ranges = card.ranges;
 
-        case 'card_and_member':
-          ranges.items
-            .map((range) => range.memberId)
-            .filter((value, index, self) => {
-              return self.indexOf(value) === index;
-            })
-            .forEach((memberId) => {
-              let ranges = card.ranges;
+      //         if (dateFromUnix) {
+      //           ranges = new Ranges(
+      //             card.data.id,
+      //             ranges.items.filter(
+      //               (item) =>
+      //                 item.start >= dateFromUnix || item.end >= dateFromUnix
+      //             )
+      //           );
+      //         }
 
-              if (dateFromUnix) {
-                ranges = new Ranges(
-                  card.data.id,
-                  ranges.items.filter(
-                    (item) =>
-                      item.start >= dateFromUnix || item.end >= dateFromUnix
-                  )
-                );
-              }
+      //         if (dateToUnix) {
+      //           ranges = new Ranges(
+      //             card.data.id,
+      //             ranges.items.filter(
+      //               (item) => item.start <= dateToUnix || item.end <= dateToUnix
+      //             )
+      //           );
+      //         }
 
-              if (dateToUnix) {
-                ranges = new Ranges(
-                  card.data.id,
-                  ranges.items.filter(
-                    (item) => item.start <= dateToUnix || item.end <= dateToUnix
-                  )
-                );
-              }
+      //         furthestBack = ranges.items.reduce<number | null>(
+      //           (carry, item) => {
+      //             if (carry === null || item.start < carry) {
+      //               carry = item.start;
+      //             }
 
-              furthestBack = ranges.items.reduce<number | null>(
-                (carry, item) => {
-                  if (carry === null || item.start < carry) {
-                    carry = item.start;
-                  }
+      //             return carry;
+      //           },
+      //           null
+      //         );
 
-                  return carry;
-                },
-                null
-              );
+      //         furthestAhead = ranges.items.reduce<number | null>(
+      //           (carry, item) => {
+      //             if (carry === null || item.start > carry) {
+      //               carry = item.end;
+      //             }
 
-              furthestAhead = ranges.items.reduce<number | null>(
-                (carry, item) => {
-                  if (carry === null || item.start > carry) {
-                    carry = item.end;
-                  }
+      //             return carry;
+      //           },
+      //           null
+      //         );
 
-                  return carry;
-                },
-                null
-              );
+      //         const timeSpent = ranges.items
+      //           .filter((item) => item.memberId === memberId)
+      //           .reduce((a, b) => a + b.diff, 0);
 
-              const timeSpent = ranges.items
-                .filter((item) => item.memberId === memberId)
-                .reduce((a, b) => a + b.diff, 0);
-
-              if (timeSpent > 0) {
-                rowCounter++;
-                rowData.push({
-                  ...rowDataItem,
-                  id: rowCounter,
-                  'member.id': memberId,
-                  'member.name': formatMemberName(memberById[memberId]),
-                  start_datetime: furthestBack
-                    ? formatDateTime(new Date(furthestBack * 1000))
-                    : 'N/A',
-                  end_datetime: furthestAhead
-                    ? formatDateTime(new Date(furthestAhead * 1000))
-                    : 'N/A',
-                  time_seconds: timeSpent,
-                  time_formatted: formatTime(timeSpent, true)
-                });
-              }
-            });
-          break;
-
-        default:
-          ranges.items.forEach((range) => {
-            if (range.diff > 0) {
-              rowCounter++;
-              rowData.push({
-                ...rowDataItem,
-                id: rowCounter,
-                'member.id': range.memberId,
-                'member.name': formatMemberName(memberById[range.memberId]),
-                start_datetime: furthestBack
-                  ? formatDateTime(new Date(range.start * 1000))
-                  : 'N/A',
-                end_datetime: furthestAhead
-                  ? formatDateTime(new Date(range.end * 1000))
-                  : 'N/A',
-                time_seconds: range.diff,
-                time_formatted: formatTime(range.diff, true)
-              });
-            }
+      //         if (timeSpent > 0) {
+      //           rowCounter++;
+      //           rowData.push({
+      //             ...rowDataItem,
+      //             id: rowCounter,
+      //             'member.id': memberId,
+      //             'member.name': formatMemberName(memberById[memberId]),
+      //             start_datetime: furthestBack
+      //               ? formatDateTime(new Date(furthestBack * 1000))
+      //               : 'N/A',
+      //             end_datetime: furthestAhead
+      //               ? formatDateTime(new Date(furthestAhead * 1000))
+      //               : 'N/A',
+      //             time_seconds: timeSpent,
+      //             time_formatted: formatTime(timeSpent, true)
+      //           });
+      //         }
+      //       });
+      //     }
+      //   default:
+      ranges.items.forEach((range) => {
+        if (range.diff > 0) {
+          rowCounter++;
+          rowData.push({
+            ...rowDataItem,
+            id: rowCounter,
+            'member.id': range.memberId,
+            'member.name': formatMemberName(memberById[range.memberId]),
+            // 'card.board_name': boardById[]
+            start_datetime: furthestBack
+              ? formatDateTime(new Date(range.start * 1000))
+              : 'N/A',
+            end_datetime: furthestAhead
+              ? formatDateTime(new Date(range.end * 1000))
+              : 'N/A',
+            time_seconds: range.diff,
+            time_formatted: formatTime(range.diff, true)
           });
-      }
+        }
+      });
     }
   });
 
@@ -629,16 +695,57 @@ async function getData() {
   const getDataStart = Date.now();
 
   loading.value = true;
-
   const token = await getTrelloCard().getRestApi().getToken();
-  const board = await getTrelloInstance().board('id');
+  const currentMember = await getTrelloInstance().member('id');
 
   try {
-    const data = await fetch(
-      `https://api.trello.com/1/boards/${
-        board.id
-      }/cards/all?pluginData=true&fields=id,idList,name,desc,labels,idBoard,pluginData,closed&key=${getAppKey()}&token=${token}&r=${new Date().getTime()}`
-    ).then<Trello.PowerUp.Card[]>((res) => res.json());
+    const boardOptionsList = await fetch(
+      `https://api.trello.com/1/members/${
+        currentMember.id
+      }/boards?fields=id,name&key=${getAppKey()}&token=${token}&r=${new Date().getTime()}`
+    ).then<{ id: string; name: string }[]>((res) => res.json());
+
+    boardOptions.value = boardOptionsList.map<Option>((board) => {
+      boardNameById[board.id] = board.name;
+      return {
+        value: board.id,
+        text: board.name
+      };
+    });
+
+    const cardsRequests = boards.value.map((board) => {
+      // double encode quotes to %252C because otherwise there's a clash with batch
+      return `/boards/${board}/cards/all?pluginData=true&fields=id%252CidList%252CidBoard%252Cname%252Cdesc%252Clabels%252CpluginData%252Cclosed`;
+    });
+    // use batch request to reduce latency
+    // funky way to compose urls field to avoid comma conflict with internal request urls
+    const cardsFetchUri =
+      new URL(
+        `https://api.trello.com/1/batch?key=${getAppKey()}&token=${token}&r=${new Date().getTime()}&urls=`
+      ) + cardsRequests.join('&urls=');
+
+    const data = await fetch(cardsFetchUri)
+      .then<{ 200: Trello.PowerUp.Card[] }[]>((res) => {
+        if (!res.ok) {
+          throw new Error(
+            'Request for cards failed with status: ' + res.statusText
+          );
+        }
+        return res.json();
+      })
+      .then((array) => {
+        return array
+          .map((elem) => {
+            if ('200' in elem) {
+              return elem['200'];
+            } else {
+              throw new Error(
+                'Fetching cards data from one or more boards failed.'
+              );
+            }
+          })
+          .flat();
+      });
 
     const boardData = await fetch(
       `https://api.trello.com/1/boards/${
@@ -653,11 +760,9 @@ async function getData() {
     lastDataFetch.value = Date.now();
 
     getUniqueLabels();
-  } catch (e) {
-    try {
-      await clearToken();
-    } catch (e) {
-      // Ignore exceptions in case no token exists
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      getTrelloCard().alert({ message: err.message, duration: 5 });
     }
 
     await getTrelloCard().getRestApi().clearToken();
@@ -675,7 +780,8 @@ async function getData() {
 
 async function initialize() {
   const board = await getTrelloInstance().board('members');
-
+  const currentBoard = await getTrelloInstance().board('id');
+  boards.value = [currentBoard.id];
   // Get the initial subscription status
   hasSubscription.value = await getSubscriptionStatus();
 

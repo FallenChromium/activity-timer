@@ -55,6 +55,7 @@ if (window.location.hash) {
 initializeOptro();
 
 const app = createApp(Router);
+app.config.performance = true
 
 if (
   typeof import.meta.env.VITE_SENTRY_DSN === 'string' &&

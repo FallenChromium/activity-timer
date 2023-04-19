@@ -441,7 +441,7 @@ async function getData() {
     const data = await fetch(
       `https://api.trello.com/1/boards/${
         board.id
-      }/cards/all?pluginData=true&fields=id,idList,name,desc,labels,pluginData,closed&key=${getAppKey()}&token=${token}&r=${new Date().getTime()}`
+      }/cards/all?pluginData=true&fields=id,idList,idBoard,name,desc,labels,pluginData,closed&key=${getAppKey()}&token=${token}&r=${new Date().getTime()}`
     ).then<Trello.PowerUp.Card[]>((res) => res.json());
 
     const boardData = await fetch(
