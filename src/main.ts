@@ -74,6 +74,7 @@ if (window.location.hash) {
 initializeOptro();
 
 const app = createApp(Router);
+app.config.performance = true
 
 app.use(PrimeVue);
 app.component('DataTable', DataTable);

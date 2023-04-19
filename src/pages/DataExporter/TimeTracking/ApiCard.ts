@@ -23,6 +23,10 @@ interface ListById {
   [key: string]: Trello.PowerUp.List;
 }
 
+interface BoardNameById {
+  [key: string]: string
+}
+
 export interface ApiCardRowData {
   [key: string]: string | string[] | number;
   id: number | string;
@@ -43,6 +47,13 @@ export interface ApiCardRowData {
   estimate_seconds: number;
   estimate_formatted: string;
 }
+
+// class ApiCardRanges extends Ranges {
+//   private _boardId: string
+//   constructor(cardId: string, items?: Range[]) {
+//     super(cardId, items)
+//   }
+// }
 
 export class ApiCard {
   private _boardData: Trello.PowerUp.Board;
@@ -78,43 +89,43 @@ export class ApiCard {
       for (const data of pluginData) {
         const parsedPluginData = JSON.parse(data.value) as PluginRawData;
 
-      if (
-        parsedPluginData['act-timer-ranges'] &&
-        parsedPluginData['act-timer-ranges'].length > 0
-      ) {
+        if (
+          parsedPluginData['act-timer-ranges'] &&
+          parsedPluginData['act-timer-ranges'].length > 0
+        ) {
           this._ranges = new Ranges(this._data.id, this._ranges.items.concat(
-          parsedPluginData['act-timer-ranges'].map((rangeData) => {
-            return new Range(
-              // Member id
-              rangeData[0],
+            parsedPluginData['act-timer-ranges'].map((rangeData) => {
+              return new Range(
+                // Member id
+                rangeData[0],
 
-              // Start
-              rangeData[1],
+                // Start
+                rangeData[1],
 
-              // End
-              rangeData[2],
-              
-              // Comment
-              rangeData[3]
-            );
-          })
+                // End
+                rangeData[2],
+
+                // Comment
+                rangeData[3]
+              );
+            })
           ));
-      }
+        }
 
-      if (parsedPluginData['act-timer-estimates']) {
-        this._estimates = new Estimates(
-          this._data.id,
+        if (parsedPluginData['act-timer-estimates']) {
+          this._estimates = new Estimates(
+            this._data.id,
             this._estimates.items.concat(parsedPluginData['act-timer-estimates'].map((estimate) => {
-            return new Estimate(
-              // Member id
-              estimate[0],
+              return new Estimate(
+                // Member id
+                estimate[0],
 
-              // Time in seconds
-              estimate[1]
-            );
-          })
+                // Time in seconds
+                estimate[1]
+              );
+            })
             ));
-      }
+        }
       }
     }
 
@@ -124,11 +135,11 @@ export class ApiCard {
       const ranges =
         selectedMembers.value.length > 0
           ? new Ranges(
-              this._data.id,
-              this._ranges.items.filter((item) =>
-                selectedMembers.value.includes(item.memberId)
-              )
+            this._data.id,
+            this._ranges.items.filter((item) =>
+              selectedMembers.value.includes(item.memberId)
             )
+          )
           : this._ranges;
 
       const timeSpent = ranges.timeSpent;
@@ -157,11 +168,9 @@ export class ApiCard {
         },
         null
       );
-
       return {
         id: this._data.id,
-        'board.name': this._boardData.name,
-        'board.id': this._boardData.id,
+        'board.id': this._data.idBoard,
         'card.id': this._data.id,
         'card.title': this._data.name,
         'card.description': this._data.desc,
