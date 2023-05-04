@@ -1,0 +1,16 @@
+version: '3.4'
+
+services:
+  activitytimer:
+    image: activitytimer
+    build:
+      args:
+        - VITE_APP_KEY=${VITE_APP_KEY}
+        - VITE_WEBSOCKET=${VITE_WEBSOCKET}
+        - VITE_API_HOST=${VITE_API_HOST}
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 3000:80
+      - 3001:443
+    command: caddy file-server --domain localhost
