@@ -1,0 +1,14 @@
+version: '3.4'
+
+services:
+  activitytimer:
+    image: activitytimer
+    build:
+      args:
+        - VITE_APP_KEY=${VITE_APP_KEY}
+        - VITE_WEBSOCKET=${VITE_WEBSOCKET}
+        - VITE_API_HOST=${VITE_API_HOST}
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 4173:80
