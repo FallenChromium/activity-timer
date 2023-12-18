@@ -1,51 +1,29 @@
 <template>
-  <div
-    v-if="canWrite && visible"
-    class="flex flex-row justify-content-between gap-3"
-  >
-    <div class="flex flex-row gap-3">
-      <Button v-if="!isTracking" label="Start timer" @click="startTracking" />
-      <Button
-        v-else
-        label="Stop timer"
-        severity="danger"
-        @click="stopTracking"
-      />
-      <Button label="Add entry" @click="addEntry" />
+  <div class="view">
+    <div v-if="canWrite && visible" class="flex flex-row justify-content-between gap-3">
+      <div class="flex flex-row gap-3">
+        <Button v-if="!isTracking" label="Start timer" @click="startTracking" />
+        <Button v-else label="Stop timer" severity="danger" @click="stopTracking" />
+        <Button label="Add entry" @click="addEntry" />
 
-      <Button
-        :label="timeSpentDisplay"
-        icon="pi pi-clock"
-        severity="secondary"
-        style="pointer-events: none"
-      />
+        <Button :label="timeSpentDisplay" icon="pi pi-clock" severity="secondary" style="pointer-events: none" />
+      </div>
+
+      <div v-if="hasEstimates" class="flex flex-row gap-3">
+        <Button :label="`Estimate: ${ownEstimateDisplay}`" severity="secondary" @click="changeEstimate" />
+
+        <Button v-if="ownEstimate != totalEstimate" :label="`Total estimate: ${totalEstimateDisplay}`"
+          severity="secondary" @click="viewEstimates" />
+      </div>
     </div>
 
-    <div v-if="hasEstimates" class="flex flex-row gap-3">
-      <Button
-        :label="`Estimate: ${ownEstimateDisplay}`"
-        severity="secondary"
-        @click="changeEstimate"
-      />
+    <Button v-else-if="hasEstimates && totalEstimate && visible" :label="`Total estimate: ${totalEstimateDisplay}`"
+      severity="secondary" />
 
-      <Button
-        v-if="ownEstimate != totalEstimate"
-        :label="`Total estimate: ${totalEstimateDisplay}`"
-        severity="secondary"
-        @click="viewEstimates"
-      />
-    </div>
+    <p v-else>No options available.</p>
+    <LogDay :ranges="range" :dateString="date" :boardMembers="members" v-if="trackingLogByDay" :card="getCardModel()"
+      v-for="[date, range]  in trackingLogByDayIterator(trackingLogByDay)"></LogDay>
   </div>
-
-  <Button
-    v-else-if="hasEstimates && totalEstimate && visible"
-    :label="`Total estimate: ${totalEstimateDisplay}`"
-    severity="secondary"
-  />
-
-  <p v-else>No options available.</p>
-    <LogDay :ranges="range" :dateString="date" :boardMembers="members" v-if="trackingLogByDay" v-for="[date, range]  in trackingLogByDayIterator(trackingLogByDay)"></LogDay>
-
 </template>
 
 <script setup lang="ts">
@@ -67,16 +45,16 @@ const hasEstimates = ref(false);
 const canWrite = ref(false);
 const visible = ref(false);
 const trackingLog = ref<Range[] | null>(null)
-const trackingLogByDay = computed(() => 
-    trackingLog.value ? trackingLog.value.reduce((organized: { [index: string]: Range[] }, item) => {
-      const category = formatDate(new Date(item.start * 1000))
-      if (!organized[category]) organized[category] = [];
-      organized[category].push(item as Range);
-      return organized;
-    }, {}) : null
+const trackingLogByDay = computed(() =>
+  trackingLog.value ? trackingLog.value.reduce((organized: { [index: string]: Range[] }, item) => {
+    const category = formatDate(new Date(item.start * 1000))
+    if (!organized[category]) organized[category] = [];
+    organized[category].push(item as Range);
+    return organized;
+  }, {}) : null
 );
 // used for descending sorting for the dates
-const trackingLogByDayIterator = (logByDay: { [index: string]: Range[]}) => ({
+const trackingLogByDayIterator = (logByDay: { [index: string]: Range[] }) => ({
   *[Symbol.iterator]() {
     yield* Object.entries(logByDay).sort((a, b) => b[0] < a[0] ? -1 : 1);
   }
@@ -289,7 +267,7 @@ setInterval(trelloTick, 1000 * 60);
 </script>
 
 <style scoped>
-html[data-color-mode='dark'] .row {
-  background-color: #313940;
+.view {
+  min-height: 200px;
 }
 </style>

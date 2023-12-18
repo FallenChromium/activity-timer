@@ -32,7 +32,6 @@ import NotificationSettings from './pages/NotificationSettings.vue';
 import Settings from './pages/Settings.vue';
 import DataExporterTime from './pages/DataExporter/TimeTracking/index.vue';
 import DataExporterEstimates from './pages/DataExporter/Estimates/index.vue';
-import DatetimePicker from './components/DatetimePicker.vue';
 import { ref } from 'vue';
 import lightTheme from 'primevue/resources/themes/bootstrap4-light-blue/theme.css?url';
 import darkTheme from 'primevue/resources/themes/bootstrap4-dark-blue/theme.css?url';

@@ -1,27 +1,28 @@
 <template>
 <h3 style="margin: 10px">Add worklog</h3>
 <div class="frame">
-  <label>Time started:</label>
-  <date-picker v-model="startingPoint" :config="flatpickrConfig" />
-  <label>Time spent:</label>
-  <input v-model="loggedTime" placeholder="e.g. 4h 5m, 6h, 4.5h" :class="{ 'is-error': parseError}" autofocus />
-  <label>Status:</label>
-  <div>You've worked on this card for <b>{{totalLog}}</b>.</div>
-  <div v-if="ownEstimate"> Your estimate for this task is <b>{{ownEstimateDisplay}}</b>.</div>
-  <div v-if="totalEstimate && totalEstimate > 0"> Total estimate for this card is <b>{{totalEstimateDisplay}}</b>.</div>
-  <label>Comment:</label>
-  <textarea class="comments" rows="5" cols="1" wrap="soft" v-model="entryComment" maxlength="120"></textarea>
-  <UIButton @click="save">Save entry</UIButton>
+  <label class="block">Time finished:</label>
+  <date-picker class="block mb-3 picker" v-model="pickedTime" :config="flatpickrConfig" />
+  <label class="block">Time spent:</label>
+  <InputText class="block mb-3" v-model="loggedTime" placeholder="e.g. 4h 5m, 6h, 4.5h" :class="{ 'p-invalid': parseError}" autofocus />
+  <label class="block">Status:</label>
+  <div class="block  mb-3">You've worked on this card for <b>{{totalLog}}</b>, you're tracking a period from <b>{{ formatDateTime(startPoint) }}</b> to <b>{{ formatDateTime(endPoint) }}</b>.</div>
+  <div v-if="ownEstimate" class="block"> Your estimate for this task is <b>{{ownEstimateDisplay}}</b>.</div>
+  <div v-if="totalEstimate && totalEstimate > 0" class="block  mb-3"> Total estimate for this card is <b>{{totalEstimateDisplay}}</b>.</div>
+  <label class="block">Comment:</label>
+  <Textarea class="comments block  mb-7" rows="5" cols="30" wrap="soft" v-model="entryComment" maxlength="120"></TextArea>
+  <Button class="block mb-3" @click="save" label="Save entry" />
 </div>
 </template>
 
 <script setup lang="ts">
-import { formatTime } from '../../utils/formatting';
-import { ref, computed } from 'vue';
+import { formatTime, formatDateTime } from '../../utils/formatting';
+import { ref, computed, ComputedRef } from 'vue';
 import { Card } from '../../components/card';
 import { Range } from '../../components/range';
-import { minutesToTime, timeToMinutes } from '../../utils/convert-time'
-import UIButton from '../../components/UIButton.vue';
+import  Textarea from 'primevue/textarea'
+import InputText from 'primevue/inputtext'
+import { timeToMinutes } from '../../utils/convert-time'
 import DatePicker from 'vue-flatpickr-component';
 import 'flatpickr/dist/flatpickr.css';
 
@@ -50,9 +51,10 @@ const totalEstimateDisplay = computed(() => {
 const ownEstimateDisplay = computed(() => {
   return formatTime(ownEstimate.value);
 });
-const startingPoint = ref<import("flatpickr/dist/types/options").DateOption>(new Date());
+const pickedTime = ref<import("flatpickr/dist/types/options").DateOption>(new Date())
+const endPoint = computed<Date>(() => new Date(pickedTime.value));
+const endSeconds = computed<number>(() => endPoint.value.getTime() / 1000);
 const loggedTime = ref<string>('');
-const startTime = computed(() => Math.floor(new Date(startingPoint.value).getTime() / 1000));
 const loggedMinutes = computed(() => {
   try {
     return timeToMinutes(loggedTime.value, 5, 8)
@@ -61,14 +63,15 @@ const loggedMinutes = computed(() => {
     return 0
   }
 });
-const totalLog = computed(() => 
+const totalLog = computed(() =>
   formatTime(
-    loggedItems.value ? 
-      Math.floor(loggedItems.value.reduce((a, b) => a + b.diff, 0) + loggedMinutes.value * 60) : 
+    loggedItems.value ?
+      Math.floor(loggedItems.value.reduce((a, b) => a + b.diff, 0) + loggedMinutes.value * 60) :
       loggedMinutes.value
   )
 )
-const endTime = computed(() => loggedMinutes ? startTime.value + loggedMinutes.value * 60 : startTime.value)
+const startSeconds: ComputedRef<number> = computed(() => loggedMinutes ? endSeconds.value - loggedMinutes.value * 60 : endSeconds.value)
+const startPoint: ComputedRef<Date> = computed(() => new Date(startSeconds.value * 1000))
 
 
 
@@ -78,12 +81,12 @@ const save = async () => {
   const cardModel = new Card(card.id);
   const ranges = await cardModel.getRanges();
   if (loggedTime.value) {
-    console.log(startTime.value, loggedMinutes.value, endTime.value)
-    ranges.add(new Range(memberId, startTime.value, endTime.value, entryComment.value));
+    console.log(startSeconds.value, loggedMinutes.value, endSeconds.value)
+    ranges.add(new Range(memberId, startSeconds.value, endSeconds.value, entryComment.value));
   }
 
   await ranges.save().then(() => trelloInstance.closeModal()).catch(() => trelloInstance.alert({message: "Couldn't save the new entry, please re-check your data.", duration: 5}));
-  
+
 };
 
 const fetchCardData = async () => {
@@ -107,10 +110,18 @@ fetchCardData()
 
 <style>
 .frame {
-  margin: 15px 20px
+  margin: 15px 20px;
 }
 
 .comments {
   max-width: 500px;
+}
+
+.picker {
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 1rem;
+  border: 1px solid #ced4da;
+  padding: 0.5rem 0.75rem;
 }
 </style>

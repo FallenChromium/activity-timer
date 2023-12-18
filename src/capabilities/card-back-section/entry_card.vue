@@ -1,10 +1,9 @@
 <template>
-    <UIRow>
-        <div class="range-card">
-            <div class="card-avatar">
-                <div class="avatar-image" :style="{ backgroundImage: `url(${member_avatar})` }" :src="member_avatar"></div>
-            </div>
-            <div class="card-body">
+    <div class="range-card">
+        <Avatar v-if="member_avatar" :image="member_avatar" shape="circle" />
+        <Avatar v-else icon="pi pi-user" shape="circle" />
+        <div class="card-body">
+            <div class="card-info">
                 <div class="card-title">
                     <b>{{ member_name }}</b> logged {{ logged_time_display }}
                 </div>
@@ -15,9 +14,13 @@
                     {{ logged_time_start_display }} - {{ logged_time_end_display }}
                 </div>
             </div>
-        </div>
-    </UIRow>
+            <!-- <div class="card-actions align-content-right">
+                <button><i class="pi pi-pencil hover-button" aria-label="Edit" /></button>
+                <button :onclick="deleteRange"><i class="pi pi-times hover-button" aria-label="Delete" /></button>
+            </div> -->
 
+        </div>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -25,10 +28,16 @@ import { computed, PropType } from 'vue';
 import { Range } from '../../components/range';
 import { formatTime, formatDateTime } from '../../utils/formatting';
 import { Trello } from '../../types/trello'
-import UIRow from '../../components/UIRow.vue';
+import Avatar from 'primevue/avatar'
+import { Card } from '../../components/card';
+import { Ranges } from '../../components/ranges';
 const props = defineProps({
     range: {
         type: Range,
+        required: true
+    },
+    card: {
+        type: Card,
         required: true
     },
     members: {
@@ -43,6 +52,14 @@ const logged_time_end_display = computed(() => formatDateTime(new Date(props.ran
 const member = computed(() => props.members?.find(x => x.id === props.range.memberId))
 const member_name = computed(() => member.value?.fullName)
 const member_avatar = computed(() => member.value?.avatar)
+
+async function deleteRange() {
+    const ranges = await props.card.getRanges()
+    new Ranges(props.card.id, ranges.items.filter(
+        (item) => item.rangeId !== props.range.rangeId
+    ))
+    await ranges.save()
+}
 </script>
 
 <style>
@@ -94,10 +111,11 @@ const member_avatar = computed(() => member.value?.avatar)
 
 .card-body {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     padding: 0px 10px 0px 5px;
     overflow: hidden;
     flex: 1 1 0%;
+    min-height: 3rem;
 }
 
 .card-comment {
@@ -109,5 +127,33 @@ const member_avatar = computed(() => member.value?.avatar)
     display: inline-block;
     margin: 5px 0px;
     padding: 4px;
+}
+
+.hover-button {
+    display: none;
+    width: 2rem;
+    height: 2rem;
+}
+
+.hover-button:hover {
+    background: none;
+
+}
+
+.hover-button>.pi {
+    font-size: 0.75rem;
+}
+
+
+.card-info {
+    width: 75%;
+}
+
+.card-actions {
+    width: 20%;
+}
+
+.card-body:hover>.card-actions>.hover-button>.pi {
+    display: inline
 }
 </style>

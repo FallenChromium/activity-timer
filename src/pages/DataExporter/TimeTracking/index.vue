@@ -65,6 +65,7 @@
           placeholder="This board"
           class="w-full md:w-14rem"
           :filter="listOptions.length > 10"
+          @change="getData"
         />
         <label for="f-members">Boards</label>
       </div>
@@ -234,7 +235,7 @@ interface Settings {
 const isAuthorized = ref(false);
 const memberOptions = ref<Option[]>([]);
 const members = ref<string[]>([]);
-const boardOptions = ref<Option[]>();
+const boardOptions = ref<Option[]>([]);
 const boards = ref<string[]>([]);
 const labels = ref<string[]>([]);
 const defaultColumns: (keyof ApiCardRowData)[] = [
@@ -332,10 +333,6 @@ const columnOptions = ref<Option[]>([
   {
     text: 'Card id',
     value: 'card.id'
-  },
-  {
-    text: 'Board id',
-    value: 'board.id'
   },
   {
     text: 'Card title',
@@ -515,6 +512,7 @@ const rowDataList = computed<ApiCardRowData[]>(() => {
               'member.name': membersInrange
                 .map((memberId) => formatMemberName(memberById[memberId]))
                 .join(', '),
+              'board.name': boardOptions.value.find((entry) => {entry.value == rowDataItem['board.id']})?.text ?? 'N/A',
               start_datetime: furthestBack
                 ? formatDateTime(new Date(furthestBack * 1000))
                 : 'N/A',
@@ -586,6 +584,7 @@ const rowDataList = computed<ApiCardRowData[]>(() => {
                 rowData.push({
                   ...rowDataItem,
                   id: rowCounter,
+                  'board.name': boardOptions.value.find((entry) => {entry.value == rowDataItem['board.id']})?.text ?? 'N/A',
                   'member.id': memberId,
                   'member.name': formatMemberName(memberById[memberId]),
                   start_datetime: furthestBack
@@ -610,6 +609,7 @@ const rowDataList = computed<ApiCardRowData[]>(() => {
                 id: rowCounter,
                 'member.id': range.memberId,
                 'member.name': formatMemberName(memberById[range.memberId]),
+                'board.name': boardOptions.value.find(entry => entry.value == rowDataItem['board.id'])!.text ?? 'N/A',
                 start_datetime: furthestBack
                   ? formatDateTime(new Date(range.start * 1000))
                   : 'N/A',

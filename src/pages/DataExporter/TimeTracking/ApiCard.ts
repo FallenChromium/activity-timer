@@ -30,7 +30,6 @@ interface BoardNameById {
 export interface ApiCardRowData {
   [key: string]: string | string[] | number;
   id: number | string;
-  'board.name': string;
   'board.id': string;
   'card.id': string;
   'card.title': string;

@@ -1,6 +1,6 @@
 <template>
     <div class="day-summary">{{dateString}} - {{dayTotalDisplay}}</div>
-    <EntryCard v-for="range in props.ranges.sort((a,b) => a.start > b.start ? -1 : 1)" :range="range" :members="boardMembers"></EntryCard>
+    <EntryCard v-for="range in props.ranges.sort((a,b) => a.start > b.start ? -1 : 1)" :range="range" :members="boardMembers" :card="props.card"></EntryCard>
 </template>
 
 <script setup lang="ts">
@@ -9,6 +9,7 @@ import EntryCard from './entry_card.vue'
 import { computed, PropType } from 'vue'
 import { formatTime } from '../../utils/formatting';
 import { Trello } from '../../types/trello';
+import { Card } from '../../components/card';
 const props = defineProps({
   ranges: {
     type: Array as PropType<Array<Range>>,
@@ -20,6 +21,10 @@ const props = defineProps({
   },
   boardMembers: {
     type: Array as PropType<Array<Trello.PowerUp.Member>>,
+    required: true
+  },
+  card: {
+    type: Card,
     required: true
   }
 });
